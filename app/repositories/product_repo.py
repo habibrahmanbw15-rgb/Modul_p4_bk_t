@@ -1,49 +1,69 @@
-# Mock Dataset
-categories = [
-    {"id": 1, "name": "Elektronik"},
-    {"id": 2, "name": "Pakaian"},
-    {"id": 3, "name": "Makanan & Minuman"},
-]
-
-items = [
-    {"id": 1, "name": "Laptop Gaming", "price": 12000000, "category_id": 1},
-    {"id": 2, "name": "Kemeja", "price": 150000, "category_id": 2},
-    {"id": 3, "name": "Kopi Susu", "price": 50000, "category_id": 3},
-    {"id": 4, "name": "Mouse Wireless", "price": 250000, "category_id": 1},
-    {"id": 5, "name": "Batik", "price": 200000, "category_id": 2},
-    {"id": 6, "name": "Teh Botol", "price": 10000, "category_id": 3},
-]
+from app.models.product_model import Category, Product, db
 
 
 class ProductRepository:
 
-  @staticmethod
-  def get_all_categories():
-    return categories
+    @staticmethod
+    def get_all_categories():
+        categories = Category.query.all()
+        return [c.to_dict() for c in categories]
 
-  @staticmethod
-  def get_all_items():
-    return items
+    @staticmethod
+    def get_category_by_id(category_id):
+        category = db.session.get(Category, category_id)
+        return category.to_dict() if category else None
 
-  @staticmethod
-  def get_item_by_id(item_id):
-    return next((i for i in items if i["id"] == item_id), None)
+    @staticmethod
+    def get_all_items():
+        items = Product.query.all()
+        return [i.to_dict() for i in items]
 
-  @staticmethod
-  def update_item(item_id, data):
-    item = ProductRepository.get_item_by_id(item_id)
-    if item:
-      item["name"] = data.get("name", item["name"])
-      item["price"] = float(data.get("price", item["price"]))
-      item["category_id"] = int(data.get("category_id", item["category_id"]))
-      return item
-    return None
+    @staticmethod
+    def get_item_by_id(item_id):
+        item = db.session.get(Product, item_id)
+        return item.to_dict() if item else None
 
-  @staticmethod
-  def delete_item(item_id):
-    global items
-    item = ProductRepository.get_item_by_id(item_id)
-    if item:
-      items = [i for i in items if i["id"] != item_id]
-      return True
-    return False
+    @staticmethod
+    def insert_item(name, price, category_id, stock=0):
+        try:
+            new_item = Product(
+                name=name,
+                price=price,
+                category_id=category_id,
+                stock=stock
+            )
+            db.session.add(new_item)
+            db.session.commit()
+            return new_item.id
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    @staticmethod
+    def update_item(item_id, data):
+        item = db.session.get(Product, item_id)
+        if not item:
+            return None
+        try:
+            item.name = data.get("name", item.name)
+            item.price = float(data.get("price", item.price))
+            item.stock = int(data.get("stock", item.stock))
+            item.category_id = int(data.get("category_id", item.category_id))
+            db.session.commit()
+            return item.to_dict()
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    @staticmethod
+    def delete_item(item_id):
+        item = db.session.get(Product, item_id)
+        if not item:
+            return False
+        try:
+            db.session.delete(item)
+            db.session.commit()
+            return True
+        except Exception as e:
+            db.session.rollback()
+            raise e

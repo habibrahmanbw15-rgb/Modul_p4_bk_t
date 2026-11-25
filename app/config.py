@@ -1,3 +1,9 @@
+import os
+
+
 class Config:
-  DEBUG = True
-  SECRET_KEY = "your-secret-key-here"
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        'DATABASE_URL',
+        'mysql+pymysql://root:@localhost:3306/connect_barang'
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
